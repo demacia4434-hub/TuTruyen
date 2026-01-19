@@ -22,21 +22,21 @@ jobs:
           docker-images: true
           swap-storage: true
 
-      # 2. Setup Java 17 (Bắt buộc cho Android SDK mới)
+      # 2. Setup Java 17
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
 
-      # 3. Setup Python 3.8 (QUAN TRỌNG: Bản ổn định nhất cho Buildozer)
+      # 3. Setup Python 3.8 (Bản ổn định nhất)
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.8'
 
-      # 4. Cài đặt thư viện hệ thống (Thêm autopoint và libtool để tránh lỗi compile)
-      - name: Install System Dependencies
+      # 4. Cài đặt thư viện hệ thống cần thiết
+      - name: Install Dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -44,44 +44,20 @@ jobs:
             python3-dev ffmpeg libsdl2-dev libsdl2-image-dev \
             libsdl2-mixer-dev libsdl2-ttf-dev libportmidi-dev \
             libswscale-dev libavformat-dev libavcodec-dev \
-            zlib1g-dev libffi-dev libssl-dev libncurses5-dev \
-            automake autoconf libtool autopoint
+            zlib1g-dev libffi-dev libssl-dev automake autoconf libtool
 
-      # 5. Cài đặt Buildozer và Cython (Phiên bản khớp với Kivy)
+      # 5. Cài Buildozer
       - name: Install Buildozer
         run: |
           pip install --upgrade pip
           pip install buildozer cython==0.29.33
 
-      # 6. Cấu hình và Build
+      # 6. Build (Dùng file spec bạn đã upload)
       - name: Build with Buildozer
         run: |
-          # Tự động tạo và sửa file spec nếu chưa có
-          if [ ! -f buildozer.spec ]; then
-            buildozer init
-            # Sửa tên App
-            sed -i 's/title = My Application/title = Tu Truyen Pro/' buildozer.spec
-            sed -i 's/package.name = myapp/package.name = tutruyen/' buildozer.spec
-            
-            # Sửa requirements (Thêm pillow và kivymd)
-            sed -i 's/requirements = python3,kivy/requirements = python3,kivy==2.2.1,kivymd,pillow,android,pyjnius,https:\/\/github.com\/kivymd\/KivyMD\/archive\/master.zip/' buildozer.spec
-            
-            # Sửa quyền truy cập
-            sed -i 's/android.permissions = INTERNET/android.permissions = INTERNET,READ_EXTERNAL_STORAGE,WRITE_EXTERNAL_STORAGE/' buildozer.spec
-            
-            # Hỗ trợ đa kiến trúc
-            sed -i 's/#android.archs = arm64-v8a, armeabi-v7a/android.archs = arm64-v8a, armeabi-v7a/' buildozer.spec
-            
-            # Fix lỗi phiên bản SDK (QUAN TRỌNG ĐỂ TRÁNH EXIT 1)
-            sed -i 's/#android.api = 31/android.api = 33/' buildozer.spec
-            sed -i 's/#android.ndk = 23b/android.ndk = 25b/' buildozer.spec
-            sed -i 's/#p4a.branch = master/p4a.branch = release-2022.12.20/' buildozer.spec
-          fi
-          
-          # Bắt đầu build
           yes | buildozer android debug
 
-      # 7. Upload APK
+      # 7. Upload kết quả
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
