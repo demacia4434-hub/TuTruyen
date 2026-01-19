@@ -22,20 +22,20 @@ jobs:
           docker-images: true
           swap-storage: true
 
-      # 2. Setup Java 17
+      # 2. Setup Java 17 (Bắt buộc)
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
 
-      # 3. Setup Python 3.8 (Bản ổn định nhất)
+      # 3. Setup Python 3.8 (Ổn định nhất)
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.8'
 
-      # 4. Cài đặt thư viện hệ thống cần thiết
+      # 4. Cài đặt thư viện hệ thống
       - name: Install Dependencies
         run: |
           sudo apt-get update
@@ -52,12 +52,44 @@ jobs:
           pip install --upgrade pip
           pip install buildozer cython==0.29.33
 
-      # 6. Build (Dùng file spec bạn đã upload)
+      # 6. TỰ TẠO FILE CẤU HÌNH (Khắc phục lỗi "No buildozer.spec found")
+      - name: Create buildozer.spec
+        run: |
+          # Xóa file cũ nếu có để tránh lỗi
+          rm -f buildozer.spec
+          
+          # Khởi tạo file mới
+          buildozer init
+          
+          # Dùng lệnh sed để tự động sửa nội dung file cấu hình
+          echo "Đang cấu hình file spec..."
+          
+          # Đổi tên App
+          sed -i 's/title = My Application/title = Tu Truyen Pro/' buildozer.spec
+          sed -i 's/package.name = myapp/package.name = tutruyen/' buildozer.spec
+          
+          # Thêm thư viện quan trọng
+          sed -i 's/requirements = python3,kivy/requirements = python3,kivy==2.2.1,kivymd,pillow,android,pyjnius/' buildozer.spec
+          
+          # Thêm quyền đọc/ghi bộ nhớ
+          sed -i 's/android.permissions = INTERNET/android.permissions = INTERNET,READ_EXTERNAL_STORAGE,WRITE_EXTERNAL_STORAGE/' buildozer.spec
+          
+          # Hỗ trợ máy đời cũ và mới
+          sed -i 's/#android.archs = arm64-v8a, armeabi-v7a/android.archs = arm64-v8a, armeabi-v7a/' buildozer.spec
+          
+          # Cấu hình phiên bản Android SDK (Quan trọng để không bị lỗi Java)
+          sed -i 's/#android.api = 31/android.api = 33/' buildozer.spec
+          sed -i 's/#android.ndk = 23b/android.ndk = 25b/' buildozer.spec
+          
+          # Kiểm tra xem file đã tạo chưa
+          cat buildozer.spec | grep "title ="
+
+      # 7. Bắt đầu Build
       - name: Build with Buildozer
         run: |
           yes | buildozer android debug
 
-      # 7. Upload kết quả
+      # 8. Upload APK
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
